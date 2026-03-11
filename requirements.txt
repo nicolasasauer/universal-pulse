@@ -16,3 +16,6 @@ httpx==0.28.1
 
 # ── Data validation ──────────────────────────────────────────────────────────
 pydantic==2.11.1
+
+# ── Charts (JS bundle copied to static/ at image build time) ─────────────────
+plotly==5.24.1
