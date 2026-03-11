@@ -44,12 +44,7 @@ COPY app/ ./app/
 
 # Extract Plotly's bundled JS so the chart page works completely offline
 # (no CDN dependency in the final container).
-RUN python -c "
-import plotly, os, shutil
-src = os.path.join(os.path.dirname(plotly.__file__), 'package_data', 'plotly.min.js')
-os.makedirs('/app/app/static', exist_ok=True)
-shutil.copy(src, '/app/app/static/plotly.min.js')
-"
+RUN python -c "import plotly, os, shutil; src = os.path.join(os.path.dirname(plotly.__file__), 'package_data', 'plotly.min.js'); os.makedirs('/app/app/static', exist_ok=True); shutil.copy(src, '/app/app/static/plotly.min.js')"
 
 # Ensure the data volume mount point exists and is owned by the app user.
 RUN mkdir -p /data && chown pulse:pulse /data
