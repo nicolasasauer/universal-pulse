@@ -186,11 +186,7 @@ Every push to `main` and every `v*.*.*` tag triggers the GitHub Actions workflow
 
 ## ⚠️ Vibecoded Disclaimer
 
-> This project was **vibecoded** — meaning it was designed with creative energy, speed, and instinct rather than formal specifications. While the code is production-oriented and follows senior engineering practices, it was written in a single focused session under the influence of pure developer flow state. 🎵
->
-> **Use in production at your own risk.** Test thoroughly, especially before pointing this at critical APIs or storing sensitive tokens. Pull requests welcome — especially for unit tests, alternative database backends, and alerting features.
->
-> *"Ship fast, iterate faster."* — The Universal-Pulse Philosophy
+> This project was built with the help of AI-assisted development. The code works, but may not follow all conventional best practices. Use at your own risk – contributions and improvements are always welcome!
 
 ---
 
