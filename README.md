@@ -25,7 +25,7 @@
 ### Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
 
-> The main dashboard shows all active trackers, their latest values, poll interval, and last-seen timestamps. Each card links to the detailed chart view.
+> The main dashboard shows all active trackers, their latest values, poll interval, and last seen timestamps. Each card links to the detailed chart view.
 
 ### Chart Detail
 ![Chart Detail](docs/screenshots/chart_detail.png)

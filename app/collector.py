@@ -87,7 +87,10 @@ def _poll_tracker(tracker_id: int) -> None:
     try:
         tracker = get_tracker(db, tracker_id)
         if tracker is None or not tracker.is_active:
-            # Tracker was deleted or paused between scheduler tick and execution
+            # The tracker was deleted or paused between when the job was
+            # scheduled and when it actually ran.  Removing the job from inside
+            # the job callback is safe in APScheduler — the job is already
+            # running so the scheduler just won't fire it again.
             _remove_job(tracker_id)
             return
 

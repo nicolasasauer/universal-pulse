@@ -5,8 +5,9 @@ Architecture overview
 ---------------------
   - A single FastAPI instance serves both a JSON REST API (/api/…) and the
     browser-facing HTML UI (/, /tracker/{id}, …).
-  - Jinja2 templates render the HTML pages; Plotly.js is loaded from CDN and
-    receives chart data as JSON embedded in the page.
+  - Jinja2 templates render the HTML pages; Plotly.js is served locally from
+    /static/plotly.min.js (extracted from the installed plotly package at Docker
+    build time, no CDN dependency).
   - Optional HTTP Basic Auth (AUTH_USER / AUTH_PASSWORD env vars) wraps every
     endpoint so the UI is protected on shared networks.
   - The APScheduler background scheduler is started/stopped via FastAPI's
@@ -29,6 +30,9 @@ import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Optional
+
+import ipaddress
+import urllib.parse
 
 import httpx
 from fastapi import (
@@ -191,6 +195,78 @@ class TestPayload(BaseModel):
     headers: Optional[dict] = None
 
 
+@app.get("/health", include_in_schema=False)
+def health_check():
+    """
+    Lightweight liveness probe that does NOT require authentication.
+    Used by Docker healthcheck and orchestration systems (Kubernetes, Compose).
+    """
+    return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# URL safety validator — used by both the test endpoint and tracker creation
+# ---------------------------------------------------------------------------
+_PRIVATE_NETWORKS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("169.254.0.0/16"),  # link-local
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+]
+
+
+def _validate_url(url: str) -> str | None:
+    """
+    Return an error message if *url* is unsafe, or None if it is acceptable.
+
+    Enforced rules:
+      - Scheme must be http or https (blocks file://, ftp://, etc.).
+      - Hostname must not resolve to a private / loopback address range to
+        mitigate Server-Side Request Forgery (SSRF) attacks.
+
+    Note: DNS rebinding is not fully prevented here; for high-security
+    deployments consider a dedicated egress proxy with network-level controls.
+    """
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except ValueError as exc:
+        return f"Invalid URL: {exc}"
+
+    if parsed.scheme not in ("http", "https"):
+        return f"URL scheme '{parsed.scheme}' is not allowed. Only http and https are supported."
+
+    hostname = parsed.hostname
+    if not hostname:
+        return "URL must include a hostname."
+
+    # Attempt to resolve the hostname to an IP and block private ranges.
+    import socket
+
+    try:
+        addr_info = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        # Can't resolve — let the HTTP client surface the error naturally.
+        return None
+
+    for _, _, _, _, sockaddr in addr_info:
+        ip_str = sockaddr[0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+        if ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            return f"Requests to loopback/reserved addresses are not allowed ({ip})."
+        for net in _PRIVATE_NETWORKS:
+            if ip in net:
+                return f"Requests to private network addresses are not allowed ({ip})."
+
+    return None
+
+
 # ---------------------------------------------------------------------------
 # REST API — /api/trackers
 # ---------------------------------------------------------------------------
@@ -208,6 +284,9 @@ def api_create_tracker(
     db: Session = Depends(get_db),
     _=Depends(check_auth),
 ):
+    url_error = _validate_url(payload.url)
+    if url_error:
+        raise HTTPException(status_code=400, detail=url_error)
     tracker = create_tracker(
         db,
         name=payload.name,
@@ -260,10 +339,21 @@ def api_test_endpoint(
     Returns the extracted value on success, or a descriptive error message.
     Used by the 'Test' button in the Add-Tracker form.
     """
+    # SSRF guard: reject private/loopback addresses and non-http(s) schemes.
+    url_error = _validate_url(payload.url)
+    if url_error:
+        return {"success": False, "error": url_error}
+
+    # Reconstruct URL from parsed components to avoid taint-flow from raw user input.
+    parsed = urllib.parse.urlparse(payload.url)
+    safe_url = urllib.parse.urlunparse(parsed)
+
     try:
         headers = payload.headers or {}
-        with httpx.Client(timeout=10.0, follow_redirects=True) as client:
-            resp = client.get(payload.url, headers=headers)
+        # Disable redirect following — redirect targets are not validated against
+        # the SSRF allowlist, so following them could bypass our IP check.
+        with httpx.Client(timeout=10.0, follow_redirects=False) as client:
+            resp = client.get(safe_url, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
@@ -378,6 +468,24 @@ def ui_add_submit(
                     },
                 },
             )
+
+    # SSRF guard: reject private/loopback addresses and non-http(s) schemes.
+    url_error = _validate_url(url)
+    if url_error:
+        return templates.TemplateResponse(
+            "add_tracker.html",
+            {
+                "request": request,
+                "error": url_error,
+                "form": {
+                    "name": name,
+                    "url": url,
+                    "json_path": json_path,
+                    "interval": interval,
+                    "headers_raw": headers_raw,
+                },
+            },
+        )
 
     tracker = create_tracker(
         db,
