@@ -33,6 +33,7 @@ jobs:
       packages: write
       # Required for provenance attestation.
       id-token: write
+      attestations: write
 
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────────────
