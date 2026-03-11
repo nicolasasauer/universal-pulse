@@ -1,0 +1,56 @@
+# =============================================================================
+# docker-compose.yml — Universal-Pulse
+#
+# Usage:
+#   docker compose up -d
+#
+# Environment variables (create a .env file to override):
+#   AUTH_USER       — Basic-Auth username  (leave blank to disable)
+#   AUTH_PASSWORD   — Basic-Auth password
+#   LOG_LEVEL       — Python log level (default: INFO)
+# =============================================================================
+
+services:
+  universal-pulse:
+    image: ghcr.io/nicolasasauer/universal-pulse:latest
+    # Uncomment the next two lines to build locally instead:
+    # build:
+    #   context: .
+
+    container_name: universal-pulse
+
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      # Persist the SQLite database across container restarts/upgrades.
+      - pulse-data:/data
+
+    environment:
+      # Optional Basic-Auth — leave blank to run unprotected.
+      AUTH_USER:     "${AUTH_USER:-}"
+      AUTH_PASSWORD: "${AUTH_PASSWORD:-}"
+      LOG_LEVEL:     "${LOG_LEVEL:-INFO}"
+      DATA_DIR:      "/data"
+
+    # Resource limits — sensible defaults for a Raspberry Pi 4 (4 GB RAM).
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/trackers')"]
+      interval: 30s
+      timeout:  5s
+      retries:  3
+      start_period: 15s
+
+volumes:
+  pulse-data:
+    driver: local

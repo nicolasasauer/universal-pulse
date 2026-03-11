@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ tracker.name }} — Universal-Pulse</title>
+  <script src="/static/plotly.min.js"></script>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3d;
+      --accent:   #6c63ff;
+      --accent2:  #00d4aa;
+      --text:     #e2e8f0;
+      --muted:    #94a3b8;
+      --danger:   #ef4444;
+      --success:  #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); letter-spacing: .05em; }
+    .logo span { color: var(--accent2); }
+    .back-btn {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .9rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+    h1 { font-size: 1.6rem; font-weight: 700; }
+    .meta { color: var(--muted); font-size: .88rem; margin-top: .4rem; }
+    .meta span { margin-right: 1.2rem; }
+
+    .badge {
+      font-size: .72rem;
+      font-weight: 700;
+      padding: .25rem .65rem;
+      border-radius: 99px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .badge-active   { background: rgba(34,197,94,.15);  color: var(--success); }
+    .badge-inactive { background: rgba(239,68,68,.15);  color: var(--danger);  }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.2rem;
+    }
+    .info-label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .4rem; }
+    .info-value { font-size: 1.1rem; font-weight: 600; word-break: break-all; }
+
+    #chart-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+
+    footer { text-align: center; padding: 2rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); margin-top: 4rem; }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">⚡ Universal<span>-Pulse</span></div>
+    <a href="/" class="back-btn">← Back to Dashboard</a>
+  </nav>
+
+  <main>
+    <div class="header">
+      <div>
+        <div style="display:flex;align-items:center;gap:.8rem;">
+          <h1>{{ tracker.name }}</h1>
+          <span class="badge {{ 'badge-active' if tracker.is_active else 'badge-inactive' }}">
+            {{ 'Active' if tracker.is_active else 'Paused' }}
+          </span>
+        </div>
+        <div class="meta">
+          <span>🔗 <a href="{{ tracker.url }}" target="_blank" rel="noopener" style="color:var(--accent2);">{{ tracker.url }}</a></span>
+          <span>⏱ Every {{ tracker.interval }} min</span>
+          <span>📍 Path: <code style="color:var(--accent2);">{{ tracker.json_path }}</code></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="chart-container">
+      <div id="chart" style="height:420px;"></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Universal-Pulse · <a href="/docs">API Docs</a> · Built with FastAPI + Plotly</p>
+  </footer>
+
+  <script>
+    const raw = {{ chart_data_json | safe }};
+
+    const trace = {
+      x: raw.timestamps,
+      y: raw.values,
+      type: 'scatter',
+      mode: 'lines+markers',
+      line: { color: '#6c63ff', width: 2.5, shape: 'spline' },
+      marker: { color: '#00d4aa', size: 5 },
+      fill: 'tozeroy',
+      fillcolor: 'rgba(108,99,255,0.08)',
+      name: '{{ tracker.json_path }}'
+    };
+
+    const layout = {
+      paper_bgcolor: '#1a1d27',
+      plot_bgcolor:  '#1a1d27',
+      font:  { color: '#e2e8f0', family: 'Segoe UI, system-ui, sans-serif' },
+      xaxis: {
+        title: 'Time',
+        gridcolor: '#2a2d3d',
+        linecolor: '#2a2d3d',
+        tickcolor: '#94a3b8',
+        type: 'date'
+      },
+      yaxis: {
+        title: '{{ tracker.json_path }}',
+        gridcolor: '#2a2d3d',
+        linecolor: '#2a2d3d',
+        tickcolor: '#94a3b8'
+      },
+      margin: { l: 60, r: 20, t: 20, b: 60 },
+      hovermode: 'x unified',
+      hoverlabel: { bgcolor: '#1a1d27', bordercolor: '#6c63ff', font: { color: '#e2e8f0' } }
+    };
+
+    const config = { responsive: true, displayModeBar: true, displaylogo: false };
+
+    if (raw.timestamps.length > 0) {
+      Plotly.newPlot('chart', [trace], layout, config);
+    } else {
+      document.getElementById('chart').innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;flex-direction:column;gap:1rem;">' +
+        '<span style="font-size:3rem;">📡</span>' +
+        '<p>No readings yet. The first poll will run within ' + {{ tracker.interval }} + ' minute(s).</p></div>';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add Tracker — Universal-Pulse</title>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3d;
+      --accent:   #6c63ff;
+      --accent2:  #00d4aa;
+      --text:     #e2e8f0;
+      --muted:    #94a3b8;
+      --danger:   #ef4444;
+      --success:  #22c55e;
+      --warn:     #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); letter-spacing: .05em; }
+    .logo span { color: var(--accent2); }
+    .back-btn { color: var(--muted); text-decoration: none; font-size: .9rem; }
+    .back-btn:hover { color: var(--text); }
+
+    main { max-width: 680px; margin: 3rem auto; padding: 0 1.5rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.8rem; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .field { margin-bottom: 1.4rem; }
+    label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .5rem; }
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: .65rem .9rem;
+      font-size: .95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    input[type=number] { -moz-appearance: textfield; }
+    textarea { resize: vertical; min-height: 80px; font-family: 'Cascadia Code', monospace; font-size: .85rem; }
+    .hint { font-size: .76rem; color: var(--muted); margin-top: .35rem; }
+    .hint code { color: var(--accent2); background: rgba(0,212,170,.1); padding: .1rem .3rem; border-radius: 4px; }
+
+    .row { display: flex; gap: 1rem; }
+    .row .field { flex: 1; }
+
+    /* Error alert */
+    .alert-error {
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.35);
+      border-radius: 10px;
+      padding: .9rem 1.1rem;
+      color: var(--danger);
+      font-size: .9rem;
+      margin-bottom: 1.4rem;
+    }
+
+    /* Test result */
+    .test-result {
+      margin-top: .9rem;
+      padding: .9rem 1.1rem;
+      border-radius: 10px;
+      font-size: .88rem;
+      display: none;
+    }
+    .test-success { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.35); color: var(--success); }
+    .test-error   { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.35); color: var(--danger);  }
+
+    .actions { display: flex; gap: .8rem; margin-top: .5rem; }
+    .btn {
+      padding: .65rem 1.4rem;
+      border: none;
+      border-radius: 10px;
+      font-size: .92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-primary   { background: var(--accent);  color: #fff; }
+    .btn-secondary { background: var(--border);  color: var(--text); }
+    .btn-test      { background: rgba(0,212,170,.15); color: var(--accent2); border: 1px solid rgba(0,212,170,.3); }
+
+    .spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(0,212,170,.3); border-top-color:var(--accent2); border-radius:50%; animation:spin .6s linear infinite; vertical-align:middle; margin-right:.4rem; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">⚡ Universal<span>-Pulse</span></div>
+    <a href="/" class="back-btn">← Back to Dashboard</a>
+  </nav>
+
+  <main>
+    <h1>➕ Add New Tracker</h1>
+
+    {% if error %}
+    <div class="alert-error">⚠ {{ error }}</div>
+    {% endif %}
+
+    <div class="card">
+      <form method="post" action="/add" id="trackerForm">
+
+        <div class="field">
+          <label for="name">Tracker Name</label>
+          <input type="text" id="name" name="name" placeholder="e.g. Bitcoin Price" required
+                 value="{{ form.name if form else '' }}" />
+        </div>
+
+        <div class="field">
+          <label for="url">API URL</label>
+          <input type="url" id="url" name="url" placeholder="https://api.example.com/data" required
+                 value="{{ form.url if form else '' }}" />
+        </div>
+
+        <div class="field">
+          <label for="json_path">JSON Path</label>
+          <input type="text" id="json_path" name="json_path" placeholder="data.price.usd" required
+                 value="{{ form.json_path if form else '' }}" />
+          <p class="hint">Dot-separated path to a numeric field, e.g. <code>data.price.usd</code> or <code>0.last</code></p>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <label for="interval">Poll Interval (minutes)</label>
+            <input type="number" id="interval" name="interval" min="1" max="10080" value="{{ form.interval if form else '5' }}" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="headers_raw">Custom Headers <span style="font-weight:400;color:var(--muted);">(optional)</span></label>
+          <textarea id="headers_raw" name="headers_raw" placeholder='{"X-API-Key": "your-secret", "Authorization": "Bearer token"}'>{{ form.headers_raw if form else '' }}</textarea>
+          <p class="hint">Valid JSON object. Leave blank for public APIs.</p>
+        </div>
+
+        <!-- Test button (outside the form submit) -->
+        <button type="button" class="btn btn-test" id="testBtn" onclick="testEndpoint()">
+          🔬 Test Endpoint
+        </button>
+        <div id="testResult" class="test-result"></div>
+
+        <div class="actions" style="margin-top:1.6rem;">
+          <button type="submit" class="btn btn-primary">💾 Save Tracker</button>
+          <a href="/" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    async function testEndpoint() {
+      const url        = document.getElementById('url').value.trim();
+      const json_path  = document.getElementById('json_path').value.trim();
+      const headersRaw = document.getElementById('headers_raw').value.trim();
+      const resultDiv  = document.getElementById('testResult');
+      const btn        = document.getElementById('testBtn');
+
+      if (!url || !json_path) {
+        resultDiv.className = 'test-result test-error';
+        resultDiv.style.display = 'block';
+        resultDiv.textContent = '⚠ Please fill in the URL and JSON Path before testing.';
+        return;
+      }
+
+      let headers = null;
+      if (headersRaw) {
+        try { headers = JSON.parse(headersRaw); }
+        catch(e) {
+          resultDiv.className = 'test-result test-error';
+          resultDiv.style.display = 'block';
+          resultDiv.textContent = '⚠ Invalid JSON in headers field.';
+          return;
+        }
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Testing…';
+      resultDiv.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, json_path, headers })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          resultDiv.className = 'test-result test-success';
+          resultDiv.innerHTML = `✅ <strong>Success!</strong> Extracted value: <strong>${data.value}</strong>`;
+        } else {
+          resultDiv.className = 'test-result test-error';
+          resultDiv.innerHTML = `❌ <strong>Error:</strong> ${data.error}`;
+        }
+      } catch(e) {
+        resultDiv.className = 'test-result test-error';
+        resultDiv.textContent = '❌ Network error: ' + e.message;
+      } finally {
+        resultDiv.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '🔬 Test Endpoint';
+      }
+    }
+  </script>
+</body>
+</html>
