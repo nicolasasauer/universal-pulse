@@ -1,0 +1,28 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# ── Runtime data ──────────────────────────────────────────────────────────────
+/data/
+*.db
+
+# ── Large generated static assets (extracted at Docker build time) ────────────
+app/static/plotly.min.js
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+
+# ── Editor / OS ───────────────────────────────────────────────────────────────
+.DS_Store
+*.swp
+.idea/
+.vscode/

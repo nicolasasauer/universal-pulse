@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Universal-Pulse — Dashboard</title>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3d;
+      --accent:   #6c63ff;
+      --accent2:  #00d4aa;
+      --text:     #e2e8f0;
+      --muted:    #94a3b8;
+      --danger:   #ef4444;
+      --success:  #22c55e;
+      --warn:     #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+    /* Nav */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); letter-spacing: .05em; }
+    .logo span { color: var(--accent2); }
+    .nav-actions a {
+      background: var(--accent);
+      color: #fff;
+      padding: .45rem 1.1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: .9rem;
+      font-weight: 600;
+      transition: opacity .2s;
+    }
+    .nav-actions a:hover { opacity: .85; }
+
+    /* Main */
+    main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 1.5rem; }
+    .subtitle { color: var(--muted); font-size: .95rem; margin-top: .3rem; }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      color: var(--muted);
+    }
+    .empty a { color: var(--accent); text-decoration: none; }
+
+    /* Card grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: .8rem;
+      transition: border-color .2s, transform .15s;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+    .card-header { display: flex; align-items: center; justify-content: space-between; }
+    .card-title { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+
+    .badge {
+      font-size: .72rem;
+      font-weight: 700;
+      padding: .2rem .55rem;
+      border-radius: 99px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .badge-active   { background: rgba(34,197,94,.15);  color: var(--success); }
+    .badge-inactive { background: rgba(239,68,68,.15);  color: var(--danger);  }
+
+    .card-url {
+      font-size: .78rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent2);
+      line-height: 1;
+    }
+    .card-meta { font-size: .78rem; color: var(--muted); }
+
+    .card-actions { display: flex; gap: .6rem; margin-top: .4rem; }
+    .btn {
+      flex: 1;
+      padding: .45rem;
+      border: none;
+      border-radius: 8px;
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+      text-decoration: none;
+      text-align: center;
+    }
+    .btn:hover { opacity: .8; }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-danger    { background: rgba(239,68,68,.18); color: var(--danger); border: 1px solid rgba(239,68,68,.3); }
+    .btn-warn      { background: rgba(245,158,11,.18); color: var(--warn);  border: 1px solid rgba(245,158,11,.3); }
+
+    /* Footer */
+    footer { text-align: center; padding: 2rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); margin-top: 4rem; }
+    footer a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">⚡ Universal<span>-Pulse</span></div>
+    <div class="nav-actions">
+      <a href="/add">+ Add Tracker</a>
+    </div>
+  </nav>
+
+  <main>
+    <div>
+      <h1>Dashboard</h1>
+      <p class="subtitle">Monitoring {{ cards | length }} tracker(s). Data refreshes automatically.</p>
+    </div>
+
+    {% if not cards %}
+    <div class="empty">
+      <p style="font-size:3rem;">📡</p>
+      <p style="font-size:1.2rem; margin-top:1rem; font-weight:600;">No trackers yet</p>
+      <p style="margin-top:.5rem;">
+        <a href="/add">Add your first tracker</a> to start monitoring an API.
+      </p>
+    </div>
+    {% else %}
+    <div class="grid">
+      {% for card in cards %}
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">{{ card.name }}</span>
+          <span class="badge {{ 'badge-active' if card.is_active else 'badge-inactive' }}">
+            {{ 'Active' if card.is_active else 'Paused' }}
+          </span>
+        </div>
+        <div class="card-url" title="{{ card.url }}">{{ card.url }}</div>
+        <div class="card-value">
+          {% if card.latest_value is not none %}
+            {{ "%.4g"|format(card.latest_value) }}
+          {% else %}
+            <span style="color:var(--muted);font-size:1.2rem;">No data yet</span>
+          {% endif %}
+        </div>
+        <div class="card-meta">
+          Every {{ card.interval }} min · Last: {{ card.latest_ts }}
+        </div>
+        <div class="card-actions">
+          <a href="/tracker/{{ card.id }}" class="btn btn-primary">📈 Chart</a>
+          <form method="post" action="/toggle/{{ card.id }}" style="flex:1;display:flex;">
+            <button type="submit" class="btn btn-warn" style="width:100%;">
+              {{ '⏸ Pause' if card.is_active else '▶ Resume' }}
+            </button>
+          </form>
+          <form method="post" action="/delete/{{ card.id }}" onsubmit="return confirm('Delete tracker \'{{ card.name }}\'?');" style="flex:1;display:flex;">
+            <button type="submit" class="btn btn-danger" style="width:100%;">🗑 Delete</button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </main>
+
+  <footer>
+    <p>Universal-Pulse · <a href="/docs">API Docs</a> · Built with FastAPI + Plotly</p>
+  </footer>
+</body>
+</html>
